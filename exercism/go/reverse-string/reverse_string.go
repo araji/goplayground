@@ -21,7 +21,7 @@ func Reverse(in string) string {
 
 
 //Fails on multibyte support 
-func Reverse1(in string) string {
+func BadReverse(in string) string {
 	l := len(in)
 	out := ""
 	for i:=0; i< l ; i++ {
