@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/csv"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -15,27 +17,55 @@ var (
 	limit    int
 )
 
-//TODO: redo with io/util instead of bufio
+func timer(timeout int, done chan bool) {
+	tstart := time.Now()
+
+	for {
+		if time.Now().Sub(tstart).Seconds() >= float64(timeout) {
+			break
+		}
+		done <- false
+	}
+	fmt.Println("TIME's UP ")
+	done <- true
+}
 func main() {
 	flag.StringVar(&filename, "filename", "problems.csv", "exercise filename")
-	flag.IntVar(&limit, "limit", 5, "time limit")
+	flag.IntVar(&limit, "limit", 10, "time limit")
 	flag.Parse()
-	fmt.Printf("using  %s with a time limit of %d (s) \n", filename, limit)
+	done := make(chan bool)
 	//read csv file
 	fid, err := os.Open(filename)
 	if err != nil {
 		log.Fatalf("unable to open %s", filename)
 	}
 	defer fid.Close()
-
-	scanner := bufio.NewScanner(fid)
+	csvReader := csv.NewReader(fid)
 	right := 0
 	wrong := 0
+
+	fmt.Fprintf(os.Stdout, "Hit Enter to start")
+	reader := bufio.NewReader(os.Stdin)
+	_, err = reader.ReadString('\n')
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	go timer(limit, done)
 	tstart := time.Now()
-	for scanner.Scan() {
-		//fmt.Println(scanner.Text())
-		l := strings.Split(scanner.Text(), ",")
-		if quiz(l[0], l[1]) {
+
+	for {
+		if <-done {
+			fmt.Println("received done message")
+			break
+		}
+		record, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+		if quiz(strings.TrimSpace(record[0]), strings.TrimSpace(record[1])) {
 			right++
 		} else {
 			wrong++
@@ -45,8 +75,8 @@ func main() {
 	fmt.Printf("Total score : correct = %d , wrong = %d  was achieved under %.2f seconds\n", right, wrong, time.Duration(tend.Sub(tstart)).Seconds())
 }
 
-func quiz(question, expected string) bool {
-
+func quiz(question, expected string,done channel bool) bool {
+	
 	fmt.Fprintf(os.Stdout, "%s =  ", question)
 	reader := bufio.NewReader(os.Stdin)
 	answer, err := reader.ReadString('\n')
@@ -55,7 +85,7 @@ func quiz(question, expected string) bool {
 	}
 	answer = strings.TrimSpace(answer)
 	if answer != expected {
-		fmt.Printf("Expected <%s> but got <%s>\n", expected, answer)
+		fmt.Printf("Expected %s but got %s\n", expected, answer)
 		return false
 	}
 	return true
