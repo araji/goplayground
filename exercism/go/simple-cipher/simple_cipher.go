@@ -1,11 +1,15 @@
 package cipher
 
 import (
-	"fmt"
 	"strings"
 	"unicode"
+	"regexp"
 )
 
+var (
+	re  = regexp.MustCompile(`[a-zA-Z]+`)
+	nre = regexp.MustCompile(`[^a-z]+`)
+)
 type CaesarCipher int
 type ShiftCipher int
 type VigenereCipher string
@@ -51,31 +55,26 @@ func (scphr ShiftCipher) Decode(m string) string {
 }
 
 func (v VigenereCipher) Encode(m string) string {
-	//TODO: hackish , find a better way
-	key := strings.Repeat(string(v), 1+(len(m)/len(v)))
-	fmt.Println(key)
-	out := make([]rune, 0)
-	for ndx, chr := range m {
-		fmt.Printf("%T\n", chr)
-
-		chr = unicode.ToLower(chr)
-		fmt.Printf("%T\n", key[ndx])
-		fmt.Println(key[ndx])
-
-		fmt.Println("message char", string(chr))
-		fmt.Println("cipher char", string(key[ndx]))
-		fmt.Println("cipher shift", key[ndx]-97)
-		fmt.Println("cipher shift", chr+rune((key[ndx]-97)))
-		newchr := chr
-		//newchr :=  rune( (chr + ( key[ndx] -97))  % 26 )
-		fmt.Println("new char", string(rune(newchr)))
-		out = append(out, newchr)
+	m1 := re.FindAllString(strings.ToLower(m),-1)
+	message := strings.Join(m1,"")
+	key := []rune(strings.Repeat(string(v), 1+(len(message)/len(v))))
+	out := []rune{}
+	for ndx, chr := range message {
+	        dec := 97 + ( (chr  - 97)  + ( key[ndx] - 97 ) ) % 26
+			out = append(out, dec)
 	}
 	return string(out)
 }
 
 func (v VigenereCipher) Decode(m string) string {
-	return m
+	msg :=[]rune(m)
+	key := []rune(strings.Repeat(string(v), 1+(len(msg)/len(v))))
+	out := []rune{}
+	for ndx, chr := range msg {
+	    newchr := 97 + ( ( chr  - 97) - ( key[ndx] - 97  ) + 26 ) % 26
+	    out = append(out, newchr)
+	}
+	return string(out)
 }
 
 func NewCaesar() Cipher {
@@ -90,6 +89,11 @@ func NewShift(distance int) Cipher {
 }
 
 func NewVigenere(key string) Cipher {
+	testkey := strings.Replace(key,"a","",-1)
+	if   ! (len(testkey) > 1 )  || ( nre.MatchString(testkey))  {
+		return nil
+	}
+	
 	return VigenereCipher(key)
 
 }
