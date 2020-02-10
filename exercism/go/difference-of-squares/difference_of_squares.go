@@ -26,3 +26,6 @@ func Difference(n int) int {
 
 	return (s1*s1) -s2
 }
+
+//very nice : https://exercism.io/tracks/go/exercises/difference-of-squares/solutions/289541bbda34fc1bdb5c099b
+//excellent : https://exercism.io/tracks/go/exercises/difference-of-squares/solutions/17c2257af6cb445d9aa5da1a3ccf4c3a
