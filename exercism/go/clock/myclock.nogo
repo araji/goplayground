@@ -1,0 +1,51 @@
+package clock
+
+import (
+	"fmt"
+	//"time"
+)
+
+type clock struct {
+	hour int
+	min int
+}
+
+func (c clock) String() string {
+	return fmt.Sprintf("%02d:%02d", c.hour, c.min)
+}
+
+//New clock instance 
+func New(h,m int ) clock {
+	if m >= 0 {
+		h += m/60
+	} else {
+		h += ( m/60 -1 ) 
+		m = m  -  ( (m / 60 ) * 60  ) + 60
+	}
+	m  = ( 60 + m %60 ) % 60
+	h = ( 24 + h %24 ) % 24	
+	return clock{hour: h %24,	min: m %60 }
+}
+
+func (c clock) Add(m int) clock {
+
+	q := ( m + c.min)  / 60
+	c.min = ( m + c.min) % 60 
+	c.hour = (c.hour + q )% 24
+	return New(c.hour,c.min)
+}
+
+func (c clock) Subtract(m int) clock {
+	var delta,h int
+	delta  = c.min - m 
+	if delta < 0 {
+	m = 60 + delta
+	h = c.hour -1
+	} else {
+	 m = delta
+	 h = c.hour
+	 }
+	
+	return New(h, m )
+
+}
