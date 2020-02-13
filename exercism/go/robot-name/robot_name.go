@@ -1,3 +1,5 @@
+// +build !better
+
 package robotname
 
 
