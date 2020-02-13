@@ -1,0 +1,36 @@
+package clock
+
+import "fmt"
+
+// TestVersion is for exercism.io
+const TestVersion = 2
+
+// Clock holds a number of minutes.
+type Clock int
+
+// Time returns a Clock.
+func Time(hour, minute int) Clock {
+	h := euclideanMod(hour, 24)
+	return Clock(h*60 + minute)
+}
+
+func (c Clock) String() string {
+	m := euclideanMod(int(c), 60)
+	h := euclideanMod((int(c)-m)/60, 24)
+
+	return fmt.Sprintf("%02d:%02d", h, m)
+}
+
+// Add some number of minutes to a clock.
+func (c Clock) Add(minutes int) Clock {
+	return Clock(int(c) + minutes)
+}
+
+// best mod() for mangling dates and times.
+func euclideanMod(v, m int) int {
+	r := v % m
+	if r < 0 {
+		return r + m
+	}
+	return r
+}
