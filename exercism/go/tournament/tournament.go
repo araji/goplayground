@@ -2,64 +2,88 @@ package tournament
 
 import (
 	"bytes"
-	"fmt"
 	"errors"
-	"strings"
+	"fmt"
+	"io"
 	"io/ioutil"
+	"sort"
+	"strings"
 )
 
 type status struct {
+	name   string
 	played int
-	won int
-	draw int
-	loss int
+	won    int
+	draw   int
+	loss   int
 	points int
-
 }
 
+//Tally reades scores and generates standings
+func Tally(in io.Reader, out io.Writer) error {
+	myerr := errors.New("tally error")
+	stdmap := make(map[string]*status)
+	teams := make([]*status, 0, 1)
+	validResults := [3]string{"win", "draw", "loss"}
 
-func Tally(in  io.Reader  ,out io.Writer)  error {
-	//myerr := errors.New("tally error")
-	stdmap :=make(map[string] *status)
-	scores,_ :=ioutil.ReadAll(in)
+	scores, _ := ioutil.ReadAll(in)
 	lines := bytes.Split(scores, []byte("\n"))
 	for _, line := range lines {
-		result := bytes.Split(line,[]byte(";"))
-		if len(result)==3 {
+		if strings.HasPrefix(string(line), "#") || len(line) == 0 {
+			continue
+		}
+		result := bytes.Split(line, []byte(";"))
+		validScore := false
+		if len(result) == 3 {
 			team1 := string(result[0])
 			team2 := string(result[1])
 			score := string(result[2])
-			
-			if _,ok := stdmap[team1] ; !ok {
+			for _, res := range validResults {
+				if res == score {
+					validScore = true
+				}
+			}
+			if !validScore {
+				return myerr
+			}
+			if _, ok := stdmap[team1]; !ok {
 				stdmap[team1] = &status{}
+				stdmap[team1].name = team1
+				teams = append(teams, stdmap[team1])
 			}
-			if _,ok := stdmap[team2] ; !ok {
+			if _, ok := stdmap[team2]; !ok {
 				stdmap[team2] = &status{}
+				stdmap[team2].name = team2
+				teams = append(teams, stdmap[team2])
 			}
-			stdmap[team1].played +=1
-			stdmap[team2].played +=1
-			
+			stdmap[team1].played++
+			stdmap[team2].played++
 			switch score {
 			case "win":
-				stdmap[team1].won +=1
-				stdmap[team2].loss +=1
-				stdmap[team1].points +=3
+				stdmap[team1].won++
+				stdmap[team2].loss++
+				stdmap[team1].points += 3
 			case "loss":
-				stdmap[team2].won +=1
-				stdmap[team1].loss +=1
-				stdmap[team2].points +=3
+				stdmap[team2].won++
+				stdmap[team1].loss++
+				stdmap[team2].points += 3
 			case "draw":
-				stdmap[team1].draw +=1
-				stdmap[team2].draw +=1
-				stdmap[team1].points +=1
-				stdmap[team2].points +=1
+				stdmap[team1].draw++
+				stdmap[team2].draw++
+				stdmap[team1].points++
+				stdmap[team2].points++
 			}
+		} else {
+			return myerr
 		}
 	}
-	fmt.Fprintf(out,"%-32s|%3s |%3s |%3s |%3s |%3s\n","TEAM","MP","W","D","L","P")
-	for k,_ := range stdmap {
-		fmt.Fprintf(out,"%-32s|%3d |%3d |%3d |%3d |%3d\n",k,stdmap[k].played, stdmap[k].won, stdmap[k].draw, stdmap[k].loss,stdmap[k].points )
+	// Sort by alphabetic first then points
+	sort.SliceStable(teams, func(i, j int) bool { return teams[i].name < teams[j].name })
+	sort.SliceStable(teams, func(i, j int) bool { return teams[i].points > teams[j].points })
+	//header then data
+	fmt.Fprintf(out, "%-31s|%3s |%3s |%3s |%3s |%3s\n", "Team", "MP", "W", "D", "L", "P")
+	for _, v := range teams {
+		fmt.Fprintf(out, "%-31s|%3d |%3d |%3d |%3d |%3d\n", v.name, v.played, v.won, v.draw, v.loss, v.points)
 	}
 	return nil
 }
-
